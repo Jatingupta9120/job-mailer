@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: job-mailer
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: job-mailer-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: job-mailer-redis
+          property: port
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_SUBJECT
+        sync: false
+
+  - type: redis
+    name: job-mailer-redis
+    ipAllowList: []
+    plan: starter

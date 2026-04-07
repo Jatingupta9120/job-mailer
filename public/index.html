@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Mailer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .upload-section {
+      margin-bottom: 20px;
+    }
+    .upload-label {
+      display: block;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .upload-area {
+      border: 2px dashed #ddd;
+      border-radius: 12px;
+      padding: 30px 20px;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .upload-area:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+    .upload-area.dragover {
+      border-color: #667eea;
+      background: #f0f2ff;
+    }
+    .upload-area.filled {
+      border-color: #28a745;
+      background: #f0fff4;
+    }
+    .upload-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    .upload-text {
+      font-size: 14px;
+      color: #666;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .file-name {
+      margin-top: 10px;
+      color: #667eea;
+      font-weight: 500;
+      font-size: 13px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+      margin-top: 10px;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .queue-status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .queue-status h3 {
+      margin-bottom: 10px;
+      color: #333;
+      font-size: 16px;
+    }
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+    }
+    .stat-label {
+      color: #666;
+    }
+    .stat-value {
+      font-weight: 600;
+      color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📧 Job Mailer</h1>
+    <p class="subtitle">Upload your resume (PDF) and email list (Excel) to send job applications</p>
+    
+    <div class="upload-section">
+      <label class="upload-label">Resume (PDF)</label>
+      <div class="upload-area" id="pdfUploadArea">
+        <div class="upload-icon">📄</div>
+        <p class="upload-text">Click or drag & drop your resume PDF</p>
+        <input type="file" id="pdfInput" accept=".pdf">
+        <div class="file-name" id="pdfFileName"></div>
+      </div>
+    </div>
+
+    <div class="upload-section">
+      <label class="upload-label">Email List (Excel)</label>
+      <div class="upload-area" id="excelUploadArea">
+        <div class="upload-icon">📊</div>
+        <p class="upload-text">Click or drag & drop your .xlsx file</p>
+        <input type="file" id="excelInput" accept=".xlsx">
+        <div class="file-name" id="excelFileName"></div>
+      </div>
+    </div>
+
+    <button id="sendBtn" disabled>Send Emails</button>
+
+    <div class="status" id="status"></div>
+
+    <div class="queue-status" id="queueStatus" style="display: none;">
+      <h3>Queue Status</h3>
+      <div class="stat">
+        <span class="stat-label">Waiting:</span>
+        <span class="stat-value" id="waiting">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Active:</span>
+        <span class="stat-value" id="active">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Delayed:</span>
+        <span class="stat-value" id="delayed">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Completed:</span>
+        <span class="stat-value" id="completed">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Failed:</span>
+        <span class="stat-value" id="failed">0</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pdfUploadArea = document.getElementById('pdfUploadArea');
+    const pdfInput = document.getElementById('pdfInput');
+    const pdfFileName = document.getElementById('pdfFileName');
+    
+    const excelUploadArea = document.getElementById('excelUploadArea');
+    const excelInput = document.getElementById('excelInput');
+    const excelFileName = document.getElementById('excelFileName');
+    
+    const sendBtn = document.getElementById('sendBtn');
+    const status = document.getElementById('status');
+    const queueStatus = document.getElementById('queueStatus');
+
+    let selectedPdf = null;
+    let selectedExcel = null;
+
+    // PDF Upload handlers
+    pdfUploadArea.addEventListener('click', () => pdfInput.click());
+    pdfUploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      pdfUploadArea.classList.add('dragover');
+    });
+    pdfUploadArea.addEventListener('dragleave', () => {
+      pdfUploadArea.classList.remove('dragover');
+    });
+    pdfUploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      pdfUploadArea.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) handlePdfFile(files[0]);
+    });
+    pdfInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) handlePdfFile(e.target.files[0]);
+    });
+
+    // Excel Upload handlers
+    excelUploadArea.addEventListener('click', () => excelInput.click());
+    excelUploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      excelUploadArea.classList.add('dragover');
+    });
+    excelUploadArea.addEventListener('dragleave', () => {
+      excelUploadArea.classList.remove('dragover');
+    });
+    excelUploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      excelUploadArea.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) handleExcelFile(files[0]);
+    });
+    excelInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) handleExcelFile(e.target.files[0]);
+    });
+
+    function handlePdfFile(file) {
+      if (!file.name.endsWith('.pdf')) {
+        showStatus('Please select a PDF file', 'error');
+        return;
+      }
+      selectedPdf = file;
+      pdfFileName.textContent = `✓ ${file.name}`;
+      pdfUploadArea.classList.add('filled');
+      checkEnableButton();
+      hideStatus();
+    }
+
+    function handleExcelFile(file) {
+      if (!file.name.endsWith('.xlsx')) {
+        showStatus('Please select a .xlsx file', 'error');
+        return;
+      }
+      selectedExcel = file;
+      excelFileName.textContent = `✓ ${file.name}`;
+      excelUploadArea.classList.add('filled');
+      checkEnableButton();
+      hideStatus();
+    }
+
+    function checkEnableButton() {
+      sendBtn.disabled = !(selectedPdf && selectedExcel);
+    }
+
+    sendBtn.addEventListener('click', async () => {
+      if (!selectedPdf || !selectedExcel) return;
+
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Uploading...';
+      showStatus('Uploading files and queuing emails...', 'info');
+
+      const formData = new FormData();
+      formData.append('resume', selectedPdf);
+      formData.append('emails', selectedExcel);
+
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showStatus(data.message, 'success');
+          loadQueueStatus();
+          setInterval(loadQueueStatus, 5000);
+        } else {
+          showStatus(data.message || 'Upload failed', 'error');
+        }
+      } catch (error) {
+        showStatus('Error: ' + error.message, 'error');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Emails';
+      }
+    });
+
+    async function loadQueueStatus() {
+      try {
+        const response = await fetch('/status');
+        const data = await response.json();
+        
+        document.getElementById('waiting').textContent = data.waiting;
+        document.getElementById('active').textContent = data.active;
+        document.getElementById('delayed').textContent = data.delayed;
+        document.getElementById('completed').textContent = data.completed;
+        document.getElementById('failed').textContent = data.failed;
+        
+        queueStatus.style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load queue status:', error);
+      }
+    }
+
+    function showStatus(message, type) {
+      status.textContent = message;
+      status.className = `status ${type}`;
+      status.style.display = 'block';
+    }
+
+    function hideStatus() {
+      status.style.display = 'none';
+    }
+
+    loadQueueStatus();
+    setInterval(loadQueueStatus, 5000);
+  </script>
+</body>
+</html>
